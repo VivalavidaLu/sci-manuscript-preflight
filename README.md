@@ -2,264 +2,195 @@
 
 [简体中文](README.zh-CN.md)
 
-A portable agent skill / instruction pack for pre-submission checks of SCI, biomedical, and bioinformatics manuscripts.
+A portable agent skill / instruction pack for pre-submission and revision-stage quality control of SCI, biomedical, and bioinformatics manuscripts.
 
-It is modeled after the idea of an arXiv-style preflight check, but adapted for journal manuscripts: AI residue scanning, reference authenticity checks, claim-to-citation review, figure/table consistency, and reporting-guideline readiness.
-
-This repository can be used in Claude Code, Codex, Antigravity, Cursor, GitHub Copilot, TRAE, or any coding/research agent that can read project instructions and run helper scripts.
+It is modeled after the idea of an arXiv-style preflight check, but adapted for journal manuscripts: AI residue scanning, reference authenticity checks, claim-to-citation review, figure/table consistency, figure/source-data/statistical integrity, reporting-guideline readiness, and submission-risk review.
 
 ## What it checks
 
-- AI residue and drafting artifacts, such as prompt text, placeholders, Markdown remnants, LaTeX remnants, and unresolved notes.
-- Hallucinated, fabricated, duplicated, or mismatched references.
-- DOI/Crossref metadata consistency.
-- High-risk claim-to-citation support.
-- Figure, table, and supplementary-material numbering consistency.
+- AI drafting residue, prompt text, placeholders, Markdown/LaTeX remnants, and unresolved notes.
+- Hallucinated, fabricated, unresolved, duplicated, or mismatched references, including DOI/PMID/title/author/year inconsistencies.
+- Overstated claims, unsupported claims, and clinical or mechanistic claims that exceed the cited evidence.
+- Figure, table, supplementary-material, caption, abbreviation, statistical-annotation, and numbering consistency.
 - Figure, source-data, and statistical integrity risks, including duplicated-looking panels, source-data gaps, quantification mismatches, and methods-results-figure contradictions.
-- Biomedical reporting readiness, including ethics, consent, data availability, code availability, and study-type checklists.
-- Bioinformatics and single-cell reproducibility details, such as data accession, software versions, QC thresholds, normalization, batch correction, clustering, annotation, DEG settings, and multiple-testing correction.
+- Methods, statistics, ethics, data availability, code availability, reporting-guideline gaps, and target-journal readiness.
 
-## Repository layout
+## Design Inspiration
 
-```text
-sci-manuscript-preflight/
-|-- SKILL.md
-|-- README.md
-|-- README.zh-CN.md
-|-- scripts/
-|   |-- preflight_static_scan.py
-|   `-- reference_audit.py
-|-- references/
-|   `-- checklist.md
-|-- examples/
-|   `-- example-preflight-report.md
-`-- templates/
-    `-- preflight_report.md
-```
+Version `v0.2.0` borrows several useful preflight dimensions from [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector), but converts them into non-accusatory submission-quality checks:
 
-## Download and installation
+| Borrowed dimension | How this skill adapts it |
+|---|---|
+| Image reuse | Screens for duplicated-looking figure panels, reused controls, crop/flip/rotation risks, and representative-image provenance gaps. |
+| Data fabrication checks | Reframed as source-data and quantification traceability: raw values, group sizes, biological vs technical replicates, and consistency between plots and source data. |
+| Image splicing/manipulation | Reframed as image assembly-artifact review for Western blots, gels, IF/IHC, microscopy, flow cytometry, and colony images. |
+| Statistical anomalies | Reframed as statistical internal-consistency review: `n`, SD/SEM/CI labels, p values, ANOVA/post-hoc logic, test choice, and multiple-testing correction. |
+| Output/publication anomalies | Kept only as optional context when relevant; it is not used as a routine submission blocker or author-level judgment. |
+| Method contradictions | Converted into a Methods-Results-Figure consistency matrix covering groups, doses, time points, sample sizes, assays, normalization, and statistical tests. |
 
-You can install this repository either by downloading the ZIP file from GitHub or by cloning it with Git.
+What was not borrowed: the satirical "spicy commentary" style and misconduct-level verdict language. This skill remains a pre-submission QC workflow. It flags risks that require author verification; it does not accuse authors of misconduct.
 
-### Method 1: Download ZIP
+## Repository Contents
 
-1. Open the repository page:
+- `SKILL.md` - main skill instructions
+- `scripts/preflight_static_scan.py` - static scan for AI residue, placeholders, Markdown/LaTeX remnants, and high-risk submission wording
+- `scripts/reference_audit.py` - DOI/Crossref reference metadata audit
+- `references/checklist.md` - manual pre-submission checklist
+- `templates/preflight_report.md` - structured preflight report template
+- `examples/example-preflight-report.md` - example submission-QC report
 
-   ```text
-   https://github.com/VivalavidaLu/sci-manuscript-preflight
-   ```
+## Download
 
-2. Click the green **Code** button.
-3. Click **Download ZIP**.
-4. Extract the downloaded ZIP file.
-5. Rename the extracted folder to:
-
-   ```text
-   sci-manuscript-preflight
-   ```
-
-6. Put the folder somewhere your agent can read, such as a project folder, a skills folder, or a rules/instructions folder.
-
-### Method 2: Install with Git
+Clone the repository:
 
 ```bash
 git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git
+cd sci-manuscript-preflight
 ```
 
-You can also clone it directly into the configuration folder used by your agent or IDE.
+Or download the ZIP from GitHub:
 
-## Use in different agents and IDEs
+1. Open <https://github.com/VivalavidaLu/sci-manuscript-preflight>
+2. Click **Code**
+3. Click **Download ZIP**
+4. Extract the folder
 
-Different tools use different names for the same basic idea: skills, rules, instructions, memories, prompts, project guidelines, or agent context. This repository is designed to work as a portable instruction pack.
+Keep the full folder. This skill is not only `SKILL.md`; it also depends on `scripts/`, `references/`, `templates/`, and `examples/`.
+
+## Installation
+
+This repository is a portable agent skill. It can be used in Claude Code, Codex, Antigravity, Cursor, GitHub Copilot, Trae, or any agent that can read local instruction files.
 
 ### Claude Code
 
-If your Claude Code setup supports skills, install the folder as a skill.
-
-#### Windows PowerShell
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\.config\claude-code\skills"
-git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git "$HOME\.config\claude-code\skills\sci-manuscript-preflight"
-```
-
-#### macOS / Linux
+Global install:
 
 ```bash
-mkdir -p ~/.config/claude-code/skills
-git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git ~/.config/claude-code/skills/sci-manuscript-preflight
+mkdir -p ~/.claude/skills
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git ~/.claude/skills/sci-manuscript-preflight
 ```
 
-After installation, restart Claude Code or reload the agent environment.
+Project install:
 
-The expected layout is:
+```bash
+mkdir -p .claude/skills
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git .claude/skills/sci-manuscript-preflight
+```
+
+Then ask Claude Code:
 
 ```text
-skills/
-└── sci-manuscript-preflight/
-    ├── SKILL.md
-    ├── README.md
-    ├── README.zh-CN.md
-    ├── scripts/
-    ├── references/
-    └── templates/
+Use the sci-manuscript-preflight skill to check this manuscript folder before submission.
 ```
 
-The most important check is that `SKILL.md` is directly inside the `sci-manuscript-preflight` folder.
+### Codex
 
-Correct:
+Global install:
+
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git ~/.codex/skills/sci-manuscript-preflight
+```
+
+Then ask Codex:
 
 ```text
-skills/sci-manuscript-preflight/SKILL.md
+Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, reference problems, claim-citation mismatch, figure/data/statistical integrity issues, and submission risks.
 ```
-
-Wrong:
-
-```text
-skills/sci-manuscript-preflight/sci-manuscript-preflight/SKILL.md
-```
-
-### OpenAI Codex
-
-Codex may not use Claude-style `SKILL.md` natively. Use this repository as a project instruction pack.
-
-Recommended options:
-
-1. Clone this repository into your manuscript or analysis project.
-2. Tell Codex:
-
-   ```text
-   Read sci-manuscript-preflight/SKILL.md and follow it as the pre-submission manuscript checking workflow.
-   ```
-
-3. If your Codex environment uses `AGENTS.md`, copy or summarize the contents of `SKILL.md` into your project-level `AGENTS.md`, or add a short rule such as:
-
-   ```text
-   For manuscript preflight checks, follow the workflow in sci-manuscript-preflight/SKILL.md. Use scripts/preflight_static_scan.py and scripts/reference_audit.py when useful.
-   ```
 
 ### Antigravity
 
-Use this repository as project context or an instruction/rules folder.
+Use this repository as a local instruction/skill folder. Clone it into a stable workspace path and reference `SKILL.md` in the agent instructions.
 
-Recommended prompt:
-
-```text
-Use the workflow in sci-manuscript-preflight/SKILL.md as a manuscript preflight skill. Check AI residue, hallucinated references, claim-citation mismatch, figure/table consistency, and journal-submission risks.
+```bash
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git tools/sci-manuscript-preflight
 ```
 
-You can also place the repository inside the project so Antigravity can read `SKILL.md`, `templates/preflight_report.md`, and the helper scripts.
+Recommended instruction:
+
+```text
+When I ask for manuscript preflight, follow tools/sci-manuscript-preflight/SKILL.md and use its scripts, references, templates, and examples when relevant.
+```
 
 ### Cursor
 
-Cursor can use this as project rules/context.
+Clone the repository into a project:
 
-Recommended options:
+```bash
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git .cursor/skills/sci-manuscript-preflight
+```
 
-1. Clone this repository into your manuscript project.
-2. Add a Cursor rule that says:
+Then add a project rule or instruction:
 
-   ```text
-   When reviewing manuscripts, follow sci-manuscript-preflight/SKILL.md. Use the report template in templates/preflight_report.md. Run helper scripts when appropriate.
-   ```
-
-3. Ask Cursor Chat or Agent:
-
-   ```text
-   Follow sci-manuscript-preflight/SKILL.md and run a pre-submission check on this manuscript.
-   ```
+```text
+For manuscript pre-submission checks, follow .cursor/skills/sci-manuscript-preflight/SKILL.md. Treat the whole folder as the skill package.
+```
 
 ### GitHub Copilot
 
-GitHub Copilot does not use Claude-style skills directly. Use this repository as repository instructions or project context.
+Clone the repository into a project or shared local tools folder:
 
-Recommended options:
-
-1. Keep this repository inside the manuscript project, or copy `SKILL.md` into your repository instructions.
-2. Ask Copilot Chat:
-
-   ```text
-   Read SKILL.md and apply this workflow to check the manuscript for AI residue, reference problems, unsupported claims, and submission-readiness issues.
-   ```
-
-3. Run the helper scripts manually in the terminal when needed.
-
-### TRAE / TRAE CN
-
-Use this repository as rules or project context.
-
-Recommended prompt:
-
-```text
-Read sci-manuscript-preflight/SKILL.md and use it as the manuscript preflight workflow. Produce the final report using templates/preflight_report.md.
+```bash
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git .github/copilot/skills/sci-manuscript-preflight
 ```
 
-If TRAE supports project rules, add a rule pointing to `SKILL.md`. If not, paste the relevant parts of `SKILL.md` into the chat before asking it to review the manuscript.
+Then reference it in Copilot instructions:
 
-## Basic use
+```text
+For SCI/biomedical manuscript preflight tasks, follow .github/copilot/skills/sci-manuscript-preflight/SKILL.md and use the included scripts and templates when applicable.
+```
+
+### Trae
+
+Clone the repository into a project:
+
+```bash
+git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git .trae/skills/sci-manuscript-preflight
+```
+
+Then add a Trae project rule or agent instruction:
+
+```text
+When reviewing a manuscript for submission readiness, follow .trae/skills/sci-manuscript-preflight/SKILL.md and keep the report structured by severity.
+```
+
+## Basic Use
 
 Ask your agent:
 
 ```text
-Use the sci-manuscript-preflight workflow to check this manuscript folder for AI residue, hallucinated references, claim-citation mismatch, figure/table numbering issues, and SCI submission risks.
+Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, hallucinated references, claim-citation mismatch, figure/table numbering issues, figure/data/statistical integrity issues, and SCI submission risks.
 ```
 
-Or:
+Recommended inputs:
 
-```text
-Read SKILL.md and run sci-manuscript-preflight on this manuscript before journal submission.
-```
+- Main manuscript: `.docx`, `.pdf`, `.tex`, or `.md`
+- Reference file: `.bib`, `.ris`, `.nbib`, `.xml`, `.enl`, or `.txt`
+- Figure, source-data, and supplementary-material folders
+- Cover letter
+- Target journal instructions
+- Reviewer checklist or response-to-reviewers draft
 
-## Helper scripts
+If only one file is provided, the agent should perform the feasible partial preflight and explicitly list missing inputs.
 
-The repository includes two optional helper scripts.
+## Helper Scripts
 
-### Static manuscript scan
+Static residue scan:
 
 ```bash
 python scripts/preflight_static_scan.py path/to/manuscript_folder --out static_scan.tsv
 ```
 
-This scans for AI residue, placeholders, Markdown/LaTeX remnants, editorial notes, and high-risk wording.
-
-For `.docx` support, install:
-
-```bash
-pip install python-docx
-```
-
-For `.pdf` support, install:
-
-```bash
-pip install pymupdf
-```
-
-### DOI/Crossref reference audit
+DOI/Crossref reference audit:
 
 ```bash
 python scripts/reference_audit.py path/to/references.bib --out reference_audit.tsv
 ```
 
-This extracts DOI-like strings and checks whether they resolve through Crossref. It can flag unresolved or duplicated DOI records, but it does not replace manual author verification.
+Script outputs are supporting evidence, not final judgment. Database failures, DOI metadata gaps, style-risk signals, image similarity, and statistical anomalies all require manual verification before drawing conclusions.
 
-## Recommended input files
+## Important Notes
 
-For a full preflight, provide:
+This is not an AI detector and not a misconduct-adjudication tool. It is a pre-submission quality-control workflow for detecting high-risk residue, fabricated or mismatched references, unsupported claims, figure/source-data/statistical consistency problems, formatting issues, and compliance gaps before journal submission.
 
-- Main manuscript file: `.docx`, `.pdf`, `.tex`, or `.md`
-- Reference file: `.bib`, `.ris`, `.nbib`, `.xml`, or exported plain text
-- Figure files
-- Tables
-- Supplementary files
-- Target journal instructions, if available
-- Reporting checklist, if applicable
-
-## Important limitations
-
-This is not an AI detector and should not be used to accuse authors of AI use. It is a pre-submission quality-control workflow designed to catch risky artifacts, fabricated or mismatched references, unsupported claims, and formatting/compliance issues before journal submission.
-
-Reference checks are probabilistic and database-dependent. A reference should not be called fabricated solely because one database lookup fails. Always manually verify flagged references in PubMed, Crossref, DOI resolver, the journal website, Zotero, EndNote, or another trusted source.
-
-## License
-
-No license has been specified yet. Add a license before broad reuse or redistribution.
+The skill distinguishes verified errors from suspicious items requiring manual confirmation. It should not silently rewrite scientific conclusions, and it should not present hypotheses as validated conclusions.

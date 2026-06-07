@@ -16,6 +16,21 @@
 - 方法、统计、伦理、数据可用性、报告指南缺口
 - 目标期刊投稿或返修前 readiness
 
+## 设计借鉴
+
+`v0.2.0` 借鉴了 [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector) 中若干适合转化为投稿前 QC 的检查维度，但全部改写为非指控式、需作者核验的 submission-quality checks：
+
+| 借鉴维度 | 在本 skill 中的转化方式 |
+|---|---|
+| 图片复用 | 转化为疑似重复 figure panel、复用 control、裁剪/翻转/旋转风险、代表图来源缺口检查。 |
+| 数据造假检查 | 转化为源数据和定量结果可追溯性检查：原始值、组别样本量、生物学/技术重复、图表与 source data 是否一致。 |
+| 图片拼接/操纵 | 转化为 Western blot、gel、IF/IHC、显微图、flow cytometry、colony image 的 assembly artifact 风险检查。 |
+| 统计异常 | 转化为统计内部一致性检查：`n`、SD/SEM/CI 标注、p 值、ANOVA/post-hoc 逻辑、检验方法、多重检验校正。 |
+| 产出异常 | 仅作为必要时的背景风险，不作为常规投稿 blocker，也不做作者层面的判断。 |
+| 方法矛盾 | 转化为 Methods-Results-Figure consistency matrix，检查组别、剂量、时间点、样本量、实验方法、归一化和统计检验是否一致。 |
+
+没有借鉴的部分：讽刺性“辣评”风格和学术不端定性语言。本 skill 保持投稿前质控定位，只标记需要作者核验的风险，不指控作者学术不端。
+
 ## 仓库内容
 
 - `SKILL.md` - skill 主说明
