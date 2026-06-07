@@ -4,7 +4,7 @@
 
 这是一个可移植的 agent skill，用于 SCI、生物医学和生物信息学论文在投稿或返修前的质量控制预检。
 
-它借鉴 arXiv-style preflight check 的思路，但面向期刊论文场景：检查 AI 写作残留、参考文献真实性、claim-to-citation 支撑关系、图表一致性、报告规范和投稿风险。
+它借鉴 arXiv-style preflight check 的思路，但面向期刊论文场景：检查 AI 写作残留、参考文献真实性、claim-to-citation 支撑关系、图表一致性、图像/源数据/统计完整性、报告规范和投稿风险。
 
 ## 它检查什么
 
@@ -12,6 +12,7 @@
 - 幻觉文献、伪造文献、无法解析文献、DOI/PMID/题名/作者/年份不匹配
 - 过度 claim、未被引用直接支撑的 claim、临床或机制性越界表述
 - 图、表、补充材料、caption、缩写、统计标注和编号一致性
+- 图像、源数据和统计完整性风险，包括疑似重复 panel、源数据缺口、定量结果不匹配、方法-结果-图注矛盾
 - 方法、统计、伦理、数据可用性、报告指南缺口
 - 目标期刊投稿或返修前 readiness
 
@@ -22,6 +23,7 @@
 - `scripts/reference_audit.py` - DOI/Crossref 参考文献元数据核查
 - `references/checklist.md` - 人工投稿前检查清单
 - `templates/preflight_report.md` - 结构化预检报告模板
+- `examples/example-preflight-report.md` - 投稿前 QC 报告示例
 
 ## 下载
 
@@ -39,7 +41,7 @@ cd sci-manuscript-preflight
 3. 点击 **Download ZIP**
 4. 解压文件夹
 
-请保留完整文件夹。这个 skill 不只是一个 `SKILL.md`，还依赖 `scripts/`、`references/` 和 `templates/`。
+请保留完整文件夹。这个 skill 不只是一个 `SKILL.md`，还依赖 `scripts/`、`references/`、`templates/` 和 `examples/`。
 
 ## 安装
 
@@ -79,7 +81,7 @@ git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git ~/.codex/
 然后对 Codex 说：
 
 ```text
-Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, reference problems, claim-citation mismatch, figure/table issues, and submission risks.
+Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, reference problems, claim-citation mismatch, figure/data/statistical integrity issues, and submission risks.
 ```
 
 ### Antigravity
@@ -93,7 +95,7 @@ git clone https://github.com/VivalavidaLu/sci-manuscript-preflight.git tools/sci
 建议添加这样的 agent instruction：
 
 ```text
-When I ask for manuscript preflight, follow tools/sci-manuscript-preflight/SKILL.md and use its scripts, references, and templates when relevant.
+When I ask for manuscript preflight, follow tools/sci-manuscript-preflight/SKILL.md and use its scripts, references, templates, and examples when relevant.
 ```
 
 ### Cursor
@@ -143,14 +145,14 @@ When reviewing a manuscript for submission readiness, follow .trae/skills/sci-ma
 对你的 agent 说：
 
 ```text
-Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, hallucinated references, claim-citation mismatch, figure/table numbering issues, and SCI submission risks.
+Use the sci-manuscript-preflight skill to check this manuscript folder for AI residue, hallucinated references, claim-citation mismatch, figure/table numbering issues, figure/data/statistical integrity issues, and SCI submission risks.
 ```
 
 推荐提供的输入包括：
 
 - 论文主文：`.docx`、`.pdf`、`.tex` 或 `.md`
 - 参考文献文件：`.bib`、`.ris`、`.nbib`、`.xml`、`.enl` 或 `.txt`
-- 图片和补充材料文件夹
+- 图片、源数据和补充材料文件夹
 - Cover letter
 - 目标期刊 instructions
 - Reviewer checklist 或 response-to-reviewers 草稿
@@ -171,10 +173,10 @@ python scripts/preflight_static_scan.py path/to/manuscript_folder --out static_s
 python scripts/reference_audit.py path/to/references.bib --out reference_audit.tsv
 ```
 
-脚本结果只能作为支持证据，不等同于最终判断。数据库失败、DOI 元数据缺失或风格风险信号，都需要人工复核后才能下结论。
+脚本结果只能作为支持证据，不等同于最终判断。数据库失败、DOI 元数据缺失、风格风险信号、图像相似性或统计异常，都需要人工复核后才能下结论。
 
 ## 注意事项
 
-这不是 AI detector，也不应用来指控作者使用 AI。它是一个投稿前质量控制流程，用来在期刊投稿前发现高风险残留、伪造或不匹配参考文献、未被证据支撑的 claim，以及格式和合规性问题。
+这不是 AI detector，也不是学术不端判定工具。它是一个投稿前质量控制流程，用来在期刊投稿前发现高风险残留、伪造或不匹配参考文献、未被证据支撑的 claim、图像/源数据/统计自洽问题，以及格式和合规性问题。
 
 这个 skill 会区分“已验证错误”和“需要人工确认的可疑项”。它不应静默改写科学结论，也不应把假设当成已验证结论。

@@ -1,6 +1,6 @@
 ---
 name: sci-manuscript-preflight
-description: Run a SCI/biomedical manuscript submission-readiness preflight before journal submission. Checks AI residue, hallucinated or mismatched references, claim-citation support, figure/table consistency, reporting guideline gaps, and journal submission risks.
+description: Run a SCI/biomedical manuscript submission-readiness preflight before journal submission. Checks AI residue, hallucinated or mismatched references, claim-citation support, figure/table consistency, figure/data/statistical integrity, reporting guideline gaps, and journal submission risks.
 ---
 
 # SCI Manuscript Preflight
@@ -17,8 +17,9 @@ This skill focuses on:
 2. Hallucinated, fabricated, or mismatched references.
 3. Claim-to-citation support problems.
 4. Figure, table, supplementary, and numbering consistency.
-5. Methods, statistics, ethics, data availability, and reporting guideline gaps.
-6. Target-journal readiness.
+5. Figure, data, and statistical integrity risks.
+6. Methods, statistics, ethics, data availability, and reporting guideline gaps.
+7. Target-journal readiness.
 
 ## Inputs
 
@@ -48,6 +49,7 @@ If the user provides only one file, perform the best possible partial preflight 
 - For biomedical references, prioritize PubMed, Europe PMC, Crossref, DOI resolver, journal pages, arXiv, bioRxiv, medRxiv, OpenAlex, and Semantic Scholar.
 - For clinical studies, check ethics, consent, trial registration, reporting guideline compliance, and data availability.
 - For bioinformatics studies, check reproducibility, code availability, data accession, versioning, parameters, and benchmark design.
+- For figure and data integrity, do not accuse authors of misconduct. Flag visible reuse, provenance gaps, statistical inconsistencies, and methods-results contradictions as submission risks requiring author verification.
 
 ## Workflow
 
@@ -140,7 +142,70 @@ Check:
 - Scale bars, units, group sizes, and test names are present when applicable.
 - Multi-panel figure labels are complete and consistent.
 
-### Step 6: Scientific and Reporting Readiness
+### Step 6: Figure, Data, and Statistical Integrity Preflight
+
+Check figure and source-data integrity as a pre-submission quality-control task. Do not label issues as fraud. Use language such as `possible duplication`, `source-data gap`, `statistical inconsistency`, or `requires author confirmation`.
+
+#### Figure panel provenance audit
+
+For each figure panel where source files are available, map:
+
+```text
+Figure panel -> raw/source file -> quantification table -> statistical test -> caption/results statement
+```
+
+Flag:
+
+- Figure panels without traceable source images or source data.
+- Representative images without a matching quantification source.
+- Quantification plots without clear raw values, group sizes, or test methods.
+- Figure legends that do not explain scale bars, units, stains, markers, gates, or abbreviations.
+
+#### Image reuse and assembly artifact screening
+
+Screen for:
+
+- Visually similar panels used for different groups, time points, experiments, or supplements.
+- Possible reuse after crop, rotation, flip, brightness/contrast change, or relabeling.
+- Reused Western blot loading controls across unrelated experiments without explicit explanation.
+- Western blot, gel, IF/IHC, microscopy, flow cytometry, or colony images with abrupt boundaries, inconsistent backgrounds, mismatched resolution, or unclear assembly.
+- Flow cytometry plots where gates, axes, compensation, event counts, or group labels are missing or inconsistent.
+
+If pixel-level analysis is not performed, state the limitation and recommend manual review of original files or specialized tools.
+
+#### Source data and quantification traceability
+
+Check whether every quantitative figure has:
+
+- Raw values or source data table.
+- Clear sample size for each group.
+- Definition of biological vs technical replicates.
+- Description of normalization and exclusion rules.
+- Consistency between plotted values, source data, captions, and results text.
+
+Flag values that appear duplicated across supposedly independent experiments, but require author confirmation before drawing conclusions.
+
+#### Statistical internal consistency audit
+
+Check:
+
+- `n` values are consistent across Methods, Results, figure legends, source data, and statistical tests.
+- SD, SEM, CI, IQR, or range are clearly labeled and used consistently.
+- Exact p values, significance symbols, and threshold statements match.
+- ANOVA, post-hoc tests, paired/unpaired tests, nonparametric tests, and multiple-testing correction are appropriate for the stated design.
+- Reported test statistics, degrees of freedom, and p values are internally plausible when available.
+- Multiple comparisons, subgroup analyses, and omics-scale tests include correction methods where required.
+
+#### Methods-results-figure consistency matrix
+
+Build a concise matrix for high-risk experiments:
+
+| Experiment | Methods | Results | Figure legend | Supplement/source data | Status |
+|---|---|---|---|---|---|
+
+Compare group definitions, sample sizes, treatment dose, treatment duration, assay method, normalization, statistical test, and exclusion criteria. Flag contradictions as `MAJOR` or `MANUAL` depending on whether the evidence is direct or requires author confirmation.
+
+### Step 7: Scientific and Reporting Readiness
 
 Depending on manuscript type, check relevant items:
 
@@ -199,7 +264,7 @@ Depending on manuscript type, check relevant items:
 - Benchmark baselines.
 - Reproducible environment.
 
-### Step 7: Output Report
+### Step 8: Output Report
 
 Produce a structured report with:
 
@@ -210,9 +275,11 @@ Produce a structured report with:
 5. Reference audit table.
 6. Claim-citation audit table.
 7. Figure/table/supplement consistency table.
-8. Reporting-guideline checklist.
-9. Manual author checklist.
-10. Exact next actions.
+8. Figure/data/statistical integrity table.
+9. Methods-results-figure consistency matrix.
+10. Reporting-guideline checklist.
+11. Manual author checklist.
+12. Exact next actions.
 
 Use severity labels:
 

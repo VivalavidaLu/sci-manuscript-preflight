@@ -15,6 +15,7 @@ This repository can be used in Claude Code, Codex, Antigravity, Cursor, GitHub C
 - DOI/Crossref metadata consistency.
 - High-risk claim-to-citation support.
 - Figure, table, and supplementary-material numbering consistency.
+- Figure, source-data, and statistical integrity risks, including duplicated-looking panels, source-data gaps, quantification mismatches, and methods-results-figure contradictions.
 - Biomedical reporting readiness, including ethics, consent, data availability, code availability, and study-type checklists.
 - Bioinformatics and single-cell reproducibility details, such as data accession, software versions, QC thresholds, normalization, batch correction, clustering, annotation, DEG settings, and multiple-testing correction.
 
@@ -22,16 +23,18 @@ This repository can be used in Claude Code, Codex, Antigravity, Cursor, GitHub C
 
 ```text
 sci-manuscript-preflight/
-├── SKILL.md
-├── README.md
-├── README.zh-CN.md
-├── scripts/
-│   ├── preflight_static_scan.py
-│   └── reference_audit.py
-├── references/
-│   └── checklist.md
-└── templates/
-    └── preflight_report.md
+|-- SKILL.md
+|-- README.md
+|-- README.zh-CN.md
+|-- scripts/
+|   |-- preflight_static_scan.py
+|   `-- reference_audit.py
+|-- references/
+|   `-- checklist.md
+|-- examples/
+|   `-- example-preflight-report.md
+`-- templates/
+    `-- preflight_report.md
 ```
 
 ## Download and installation

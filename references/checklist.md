@@ -8,6 +8,11 @@
 - [ ] All DOI/PMID/title/year/author metadata are consistent.
 - [ ] All high-risk claims have direct citation support.
 - [ ] All figures, tables, and supplementary files are cited and numbered consistently.
+- [ ] Every figure panel has traceable source data or a documented reason if source files are unavailable.
+- [ ] No duplicated-looking image panels are used for different conditions without explanation.
+- [ ] No unexplained Western blot, gel, microscopy, flow cytometry, or IHC assembly artifacts remain.
+- [ ] All quantitative panels match raw/source values, group sizes, statistical tests, and figure legends.
+- [ ] Methods, Results, figure legends, and supplementary/source data agree on groups, doses, time points, sample sizes, and tests.
 
 ## Biomedical compliance
 
@@ -21,4 +26,7 @@
 
 - [ ] Every flagged reference is manually verified in Zotero/EndNote/PubMed.
 - [ ] Every figure panel has source data and a clear caption.
+- [ ] Every representative image is linked to the correct experimental group and raw image.
+- [ ] Every statistical annotation is reproducible from the source data or analysis script.
+- [ ] Any possible image reuse, crop, rotation, flip, or relabeling has been manually checked against original files.
 - [ ] The conclusion does not overstate the evidence.
