@@ -1,6 +1,6 @@
 ---
 name: sci-manuscript-preflight
-description: Run a SCI/biomedical manuscript submission-readiness preflight before journal submission. Checks AI residue, hallucinated or mismatched references, claim-citation support, figure/table consistency, figure/data/statistical integrity, reporting guideline gaps, and journal submission risks.
+description: Run a SCI/biomedical manuscript submission-readiness preflight before journal submission. Checks AI residue, hallucinated or mismatched references, claim-citation support, figure/table consistency, figure/data/statistical integrity, tabular source-data release readiness, reporting guideline gaps, and journal submission risks.
 ---
 
 # SCI Manuscript Preflight
@@ -18,8 +18,9 @@ This skill focuses on:
 3. Claim-to-citation support problems.
 4. Figure, table, supplementary, and numbering consistency.
 5. Figure, data, and statistical integrity risks.
-6. Methods, statistics, ethics, data availability, and reporting guideline gaps.
-7. Target-journal readiness.
+6. Tabular source-data numerical integrity and submission release gating.
+7. Methods, statistics, ethics, data availability, and reporting guideline gaps.
+8. Target-journal readiness.
 
 ## Inputs
 
@@ -30,6 +31,8 @@ Accept any of the following:
 - Manuscript `.tex`
 - Reference file `.bib`, `.ris`, `.enl`, `.xml`, `.nbib`, `.txt`
 - Figure folder
+- Source-data tables: `.xlsx`, `.xls`, `.xlsm`, `.xlsb`, `.csv`, `.tsv`
+- Statistical scripts, notebooks, or analysis exports
 - Supplementary files
 - Cover letter
 - Target journal instructions
@@ -50,6 +53,10 @@ If the user provides only one file, perform the best possible partial preflight 
 - For clinical studies, check ethics, consent, trial registration, reporting guideline compliance, and data availability.
 - For bioinformatics studies, check reproducibility, code availability, data accession, versioning, parameters, and benchmark design.
 - For figure and data integrity, do not accuse authors of misconduct. Flag visible reuse, provenance gaps, statistical inconsistencies, and methods-results contradictions as submission risks requiring author verification.
+- Treat deterministic table findings as signals requiring source-table verification, not as proof of error, fabrication, or intent.
+- Never interpret an empty finding list as proof that the data are correct.
+- Do not assign final `PASS` when expected source-data files failed to parse, central quantitative outputs lack traceable source data, or unresolved high-impact findings remain.
+- Separate scanner output from scientific interpretation, preserve benign explanations, and require named author sign-off for unresolved manual items.
 
 ## Workflow
 
@@ -205,7 +212,66 @@ Build a concise matrix for high-risk experiments:
 
 Compare group definitions, sample sizes, treatment dose, treatment duration, assay method, normalization, statistical test, and exclusion criteria. Flag contradictions as `MAJOR` or `MANUAL` depending on whether the evidence is direct or requires author confirmation.
 
-### Step 7: Scientific and Reporting Readiness
+### Step 7: Table and Source-Data Integrity Release Gate
+
+When quantitative tables, spreadsheet source data, or figure-level source-data exports are available, read and follow [references/table_source_data_gate.md](references/table_source_data_gate.md).
+
+#### Freeze and coverage audit
+
+- Inventory all expected source-data files and record SHA-256 hashes.
+- Identify every workbook, sheet, table, and generated output expected from the manuscript.
+- Surface `scan_errors`, unsupported formats, oversized files, extraction failures, and skipped sheets before interpreting findings.
+- Treat incomplete parse coverage as `BLOCKER` unless a named author documents why the missing item is outside the assessed scope.
+
+#### Deterministic numerical scan
+
+Use a real numerical scanner when available. Prefer the external [paperconan](https://github.com/zixixr/paperconan) CLI through `scripts/table_integrity_gate.py`; never invent scanner output from visual inspection.
+
+Check for:
+
+- Cross-sheet or cross-file duplication and value overlap.
+- Constant offset, constant ratio, exact linear relations, and complementary sums.
+- Copy-then-tweak patterns and unusual long decimal-tail reuse.
+- Repeated high-precision values, restricted difference sets, and fixed rounding grids.
+- GRIM/GRIMMER inconsistencies when the underlying observations are integer-granular.
+- Last-digit distribution only with appropriate multiple-testing correction.
+
+For every finding, preserve:
+
+```text
+file -> sheet -> row/column range -> detector/rule -> n -> value sample -> profile action
+```
+
+Keep `kept`, `demoted`, and `hidden` scanner states visible in the machine-readable audit. Test benign explanations including shared controls, re-plots, unit conversion, formula-derived columns, normalization, fixed denominators, axes, technical replicates, detection limits, bounded scores, and model outputs.
+
+#### Separate review state from scientific impact
+
+Use review states:
+
+- `REVIEW_REQUIRED`
+- `MANUAL_REVIEW`
+- `RESOLVED_BENIGN`
+- `RESOLVED_ERROR`
+- `NOT_ASSESSED`
+
+Assess scientific impact separately:
+
+- `CORE`: affects a primary result, main figure, endpoint, or central mechanism.
+- `SUPPORTING`: affects supporting evidence.
+- `PERIPHERAL`: affects a secondary or supplementary result.
+
+Do not collapse these dimensions into one risk or misconduct score.
+
+#### Recompute, reconcile, and red-team
+
+- Recompute key summaries and statistical tests from frozen source data where feasible.
+- Reconcile source values with manuscript tables, plotted values, captions, Results, Methods, `n`, exclusions, units, transformations, exact p values, and multiple-testing corrections.
+- Require a separate adversarial review for unresolved `CORE` findings and initially high-priority signals. The reviewer must actively search for benign explanations.
+- Rescan corrected files and preserve the original and corrected audit trail.
+
+Final clearance requires complete parse coverage, traceable quantitative outputs, closure of all blockers and review-required items, and named author sign-off. Even then, state: "No unresolved issue was detected within the assessed scope." Do not guarantee that no error exists.
+
+### Step 8: Scientific and Reporting Readiness
 
 Depending on manuscript type, check relevant items:
 
@@ -264,7 +330,7 @@ Depending on manuscript type, check relevant items:
 - Benchmark baselines.
 - Reproducible environment.
 
-### Step 8: Output Report
+### Step 9: Output Report
 
 Produce a structured report with:
 
@@ -276,10 +342,11 @@ Produce a structured report with:
 6. Claim-citation audit table.
 7. Figure/table/supplement consistency table.
 8. Figure/data/statistical integrity table.
-9. Methods-results-figure consistency matrix.
-10. Reporting-guideline checklist.
-11. Manual author checklist.
-12. Exact next actions.
+9. Table and source-data release-gate coverage and findings.
+10. Methods-results-figure consistency matrix.
+11. Reporting-guideline checklist.
+12. Manual author checklist.
+13. Exact next actions.
 
 Use severity labels:
 
@@ -296,9 +363,18 @@ If available, use:
 ```bash
 python scripts/preflight_static_scan.py <manuscript_folder_or_file> --out static_scan.tsv
 python scripts/reference_audit.py <reference_file.bib> --out reference_audit.tsv
+python scripts/table_integrity_gate.py --input-dir <source_data_dir> --out <table_gate_dir> --profile review
 ```
 
-Use script results as supporting evidence, not as final judgment.
+To interpret an existing paperconan scan without rerunning it:
+
+```bash
+python scripts/table_integrity_gate.py --scan-json <scan.json> --out <table_gate_dir>
+```
+
+The table gate requires the external `paperconan` CLI only when scanning a source-data directory. Ask before installing it into a shared environment. If it is unavailable, mark the numerical gate `NOT_ASSESSED`; do not claim a pass.
+
+Use all script results as supporting evidence, not as final judgment.
 
 ## Final Response Style
 
