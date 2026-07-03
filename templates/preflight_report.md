@@ -9,6 +9,7 @@
 - Missing files:
 - Study type:
 - Coverage limitations:
+- Table/source-data gate status: `PASS_CANDIDATE / MANUAL_REVIEW / REVIEW_REQUIRED / BLOCKER / NOT_ASSESSED`
 
 ## 2. Critical Blockers
 
@@ -78,12 +79,50 @@ Use non-accusatory risk labels:
 | Experiment | Methods | Results | Figure legend | Supplement/source data | Status |
 |---|---|---|---|---|---|
 
-## 12. Reporting Guideline and Reproducibility Checklist
+## 12. Table and Source-Data Integrity Release Gate
+
+### 12.1 Scan coverage
+
+| Expected file/table | Parsed | Scanner/version/profile | Scan error | SHA-256 recorded | Status |
+|---|---|---|---|---|---|
+
+### 12.2 Deterministic numerical findings
+
+| ID | File | Sheet | Rows/columns | Detector/rule | n | Value sample | Scanner action | Review state | Impact scope |
+|---|---|---|---|---|---|---|---|---|---|
+
+Scanner actions: `kept / demoted / hidden`.
+
+Review states: `REVIEW_REQUIRED / MANUAL_REVIEW / RESOLVED_BENIGN / RESOLVED_ERROR / NOT_ASSESSED`.
+
+Impact scopes: `CORE / SUPPORTING / PERIPHERAL`.
+
+### 12.3 Recalculation and cross-artifact reconciliation
+
+| Output | Frozen source data | Independent recalculation | Figure/table match | Results/Methods match | Status |
+|---|---|---|---|---|---|
+
+### 12.4 Adversarial review
+
+| Finding ID | Benign explanations tested | Materials reviewed | Reviewer | Date | Outcome |
+|---|---|---|---|---|---|
+
+Outcomes: `CONFIRMED / DOWNGRADED / RESOLVED_BENIGN / NEEDS_MORE_MATERIAL`.
+
+### 12.5 Release decision
+
+- [ ] No unresolved parse failure or skipped expected source-data item.
+- [ ] No unresolved `BLOCKER`, `REVIEW_REQUIRED`, or `CORE` finding.
+- [ ] Corrected artifacts were rescanned.
+- [ ] Named author sign-off is recorded for remaining manual limitations.
+- Final scope-limited statement:
+
+## 13. Reporting Guideline and Reproducibility Checklist
 
 | Domain | Item | Status | Comment |
 |---|---|---|---|
 
-## 13. Manual Author Checklist
+## 14. Manual Author Checklist
 
 - [ ] Confirm all highlighted references in Zotero/EndNote/PubMed.
 - [ ] Confirm all ethics/consent/data availability statements.
@@ -92,10 +131,12 @@ Use non-accusatory risk labels:
 - [ ] Confirm every quantitative panel maps to source data and the stated statistical test.
 - [ ] Confirm all duplicated-looking image regions are either explained or replaced.
 - [ ] Confirm all sample sizes, p values, and significance symbols match the source data.
+- [ ] Confirm all table-gate findings, parse failures, and benign explanations against original files.
+- [ ] Confirm all remaining manual limitations have a named author sign-off.
 - [ ] Confirm all author contributions and conflicts of interest.
 - [ ] Confirm final target-journal formatting requirements.
 
-## 14. Exact Next Actions
+## 15. Exact Next Actions
 
 1.
 2.

@@ -9,6 +9,7 @@
 - Missing files: Original raw image files, full statistical scripts
 - Study type: Cell and animal experiments
 - Coverage limitations: This example does not include pixel-level forensic image analysis. All image-integrity findings require author confirmation against original files.
+- Table/source-data gate status: `REVIEW_REQUIRED`
 
 ## 2. Critical Blockers
 
@@ -23,6 +24,7 @@
 | M1 | Figure 3B and Figure S4A | Possible visual duplication requiring author confirmation | The control microscopy panels look visually similar despite representing different experiments. | Check original images. Replace the panel or add a documented explanation if the same representative image was intentionally reused. |
 | M2 | Figure 4C | Statistical inconsistency | Figure legend states one-way ANOVA, Methods states unpaired t test, and source-data table has three groups. | Align Methods, legend, and analysis output. Use the appropriate omnibus and post-hoc workflow if three groups are compared. |
 | M3 | Figure 5D | Source-data gap | Bar plot reports mean +/- SEM and significance symbols, but no raw values or sample sizes were provided. | Add source data with raw values, group sizes, statistical test, and exact p values. |
+| M4 | Figure 6B source-data table | Unexplained constant offset across two columns | A deterministic scan found `Treatment = Control + 2.13` across 12 rows presented as independent measurements. | Open the original table, confirm whether either column is formula-derived, and perform an independent reverse-check before submission. |
 
 ## 4. Minor Polish Issues
 
@@ -78,14 +80,52 @@
 | Dose-response assay | 24 h treatment, three doses | Reports three dose groups | Lists two doses | Source table lists three doses | MAJOR |
 | Animal model | n=6 per group | Results states n=5 | Legend states n=6 | Source data missing one animal ID | MANUAL |
 
-## 12. Reporting Guideline and Reproducibility Checklist
+## 12. Table and Source-Data Integrity Release Gate
+
+### 12.1 Scan coverage
+
+| Expected file/table | Parsed | Scanner/version/profile | Scan error | SHA-256 recorded | Status |
+|---|---|---|---|---|---|
+| source_data.xlsx | Yes | paperconan 0.8.0/review | None | Yes | PASS |
+| supplementary_tables.xlsx | Yes | paperconan 0.8.0/review | None | Yes | PASS |
+
+### 12.2 Deterministic numerical findings
+
+| ID | File | Sheet | Rows/columns | Detector/rule | n | Value sample | Scanner action | Review state | Impact scope |
+|---|---|---|---|---|---|---|---|---|---|
+| TG1 | source_data.xlsx | Figure 6B | Rows 3-14, columns B-C | constant_offset: C = B + 2.13 | 12 | 1.20 -> 3.33; 2.41 -> 4.54 | kept | REVIEW_REQUIRED | CORE |
+| TG2 | supplementary_tables.xlsx | Unit conversion | Rows 2-11, columns ng-ug | constant_ratio: ng = ug * 1000 | 10 | 1200 -> 1.2 | demoted | RESOLVED_BENIGN | PERIPHERAL |
+
+### 12.3 Recalculation and cross-artifact reconciliation
+
+| Output | Frozen source data | Independent recalculation | Figure/table match | Results/Methods match | Status |
+|---|---|---|---|---|---|
+| Figure 4C | Yes | Test mismatch remains | Values match | No | MAJOR |
+| Figure 6B | Yes | Pending | Values match | Independence premise unclear | REVIEW_REQUIRED |
+
+### 12.4 Adversarial review
+
+| Finding ID | Benign explanations tested | Materials reviewed | Reviewer | Date | Outcome |
+|---|---|---|---|---|---|
+| TG1 | Shared control, unit conversion, normalization, formula-derived column | Source table and figure legend; calculation script missing | Independent reviewer | YYYY-MM-DD | NEEDS_MORE_MATERIAL |
+| TG2 | Unit conversion | Source table, column labels, Methods | Independent reviewer | YYYY-MM-DD | RESOLVED_BENIGN |
+
+### 12.5 Release decision
+
+- [x] No unresolved parse failure or skipped expected source-data item.
+- [ ] No unresolved `BLOCKER`, `REVIEW_REQUIRED`, or `CORE` finding.
+- [ ] Corrected artifacts were rescanned.
+- [ ] Named author sign-off is recorded for remaining manual limitations.
+- Final scope-limited statement: Not yet eligible; TG1 remains unresolved.
+
+## 13. Reporting Guideline and Reproducibility Checklist
 
 | Domain | Item | Status | Comment |
 |---|---|---|---|
 | Animal study | Randomization and blinding | MANUAL | Mentioned in Methods but not described in enough detail. |
 | Bioinformatics | Code availability | MAJOR | No repository or environment information provided. |
 
-## 13. Manual Author Checklist
+## 14. Manual Author Checklist
 
 - [ ] Confirm all highlighted references in Zotero/EndNote/PubMed.
 - [ ] Confirm all ethics/consent/data availability statements.
@@ -94,11 +134,14 @@
 - [ ] Confirm every quantitative panel maps to source data and the stated statistical test.
 - [ ] Confirm all duplicated-looking image regions are either explained or replaced.
 - [ ] Confirm all sample sizes, p values, and significance symbols match the source data.
+- [ ] Confirm TG1 against the original calculation script and document whether the columns are independent measurements.
+- [ ] Confirm all remaining manual limitations have a named author sign-off.
 - [ ] Confirm all author contributions and conflicts of interest.
 - [ ] Confirm final target-journal formatting requirements.
 
-## 14. Exact Next Actions
+## 15. Exact Next Actions
 
 1. Verify Figure 3B and Figure S4A against original raw image files.
 2. Resolve the Figure 4C statistical-method mismatch and update Methods, legend, and source-data notes.
 3. Add source data for Figure 5D, including raw values, n values, exact p values, and the statistical test.
+4. Resolve TG1 by obtaining the Figure 6B calculation script, testing benign explanations, and rescanning the corrected or documented table.
