@@ -10,7 +10,7 @@ It is modeled after the idea of an arXiv-style preflight check, but adapted for 
 
 ## What it checks
 
-- AI drafting residue, prompt text, placeholders, Markdown/LaTeX remnants, and unresolved notes.
+- AI drafting residue, retained agent instructions, placeholders, Markdown/LaTeX remnants, and unresolved notes.
 - Hallucinated, fabricated, unresolved, duplicated, or mismatched references, including DOI/PMID/title/author/year inconsistencies.
 - Overstated claims, unsupported claims, and clinical or mechanistic claims that exceed the cited evidence.
 - Figure, table, supplementary-material, caption, abbreviation, statistical-annotation, and numbering consistency.
@@ -18,63 +18,23 @@ It is modeled after the idea of an arXiv-style preflight check, but adapted for 
 - Deterministic table signals, parse coverage, source-file hashes, false-positive explanations, independent recalculation, and submission release gating.
 - Methods, statistics, ethics, data availability, code availability, reporting-guideline gaps, and target-journal readiness.
 
-## New pre-submission checks in v0.2.2
-
-- Freeze expected source-data files with relative paths, sizes, and SHA-256 hashes.
-- Block clearance when `scan_errors`, skipped files, unsupported legacy workbooks, or missing expected sheets leave the assessment incomplete.
-- Locate every numerical signal by file, sheet, row/column range, detector/rule, `n`, and value sample.
-- Screen cross-sheet/file reuse, constant offsets or ratios, exact linear relations, copy-then-tweak patterns, unusual decimal-tail reuse, rounding grids, and applicable GRIM/GRIMMER inconsistencies.
-- Preserve `kept`, `demoted`, and `hidden` scanner states plus benign explanations such as unit conversion, shared controls, formulas, normalization, fixed denominators, and detection limits.
-- Separate signal review state from scientific impact scope (`CORE`, `SUPPORTING`, or `PERIPHERAL`).
-- Recompute key statistics and reconcile source data with figures, tables, captions, Results, and Methods.
-- Require an adversarial reverse-check for unresolved high-impact findings.
-- Rescan corrected artifacts and require named author sign-off before final clearance.
-- Use `PASS_CANDIDATE`, never an absolute guarantee, when no unresolved issue is detected within the assessed scope.
-
 ## Design Inspiration
 
-### Figure, image, and statistical-integrity framing
+Version `v0.2.0` adapted figure-provenance, image-assembly, statistical-consistency, and methods-contradiction checks from [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector) into non-accusatory author-side quality control.
 
-Version `v0.2.0` borrows several useful preflight dimensions from [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector), but converts them into non-accusatory submission-quality checks:
-
-| Borrowed dimension | How this skill adapts it |
-|---|---|
-| Image reuse | Screens for duplicated-looking figure panels, reused controls, crop/flip/rotation risks, and representative-image provenance gaps. |
-| Data fabrication checks | Reframed as source-data and quantification traceability: raw values, group sizes, biological vs technical replicates, and consistency between plots and source data. |
-| Image splicing/manipulation | Reframed as image assembly-artifact review for Western blots, gels, IF/IHC, microscopy, flow cytometry, and colony images. |
-| Statistical anomalies | Reframed as statistical internal-consistency review: `n`, SD/SEM/CI labels, p values, ANOVA/post-hoc logic, test choice, and multiple-testing correction. |
-| Output/publication anomalies | Kept only as optional context when relevant; it is not used as a routine submission blocker or author-level judgment. |
-| Method contradictions | Converted into a Methods-Results-Figure consistency matrix covering groups, doses, time points, sample sizes, assays, normalization, and statistical tests. |
-
-What was not borrowed: the satirical "spicy commentary" style and misconduct-level verdict language. This skill remains a pre-submission QC workflow. It flags risks that require author verification; it does not accuse authors of misconduct.
-
-### Table and source-data release gate
-
-Version `v0.2.2` learns from [zixixr/paperconan](https://github.com/zixixr/paperconan), especially its deterministic numerical scanning, `signal, not verdict` boundary, parse-failure visibility, false-positive profiles, evidence localization, and adversarial review protocol.
-
-| Learned dimension | How this skill adapts it for authors before submission |
-|---|---|
-| Deterministic numerical signals | Uses the real paperconan CLI when available; never fabricates findings from visual inspection. |
-| Parse coverage | Treats `scan_errors`, skipped expected files, and unparsed sheets as release blockers. |
-| Evidence localization | Records file, sheet, row/column range, rule, `n`, and a compact value sample. |
-| False-positive control | Preserves `kept`, `demoted`, and `hidden` states and checks plausible benign explanations against the original table and Methods. |
-| Tier versus impact | Replaces suspicion-oriented wording with review state and separate scientific impact scope. |
-| Adversarial review | Requires an independent reverse-check for unresolved high-impact findings before submission clearance. |
-| Regression discipline | Adds synthetic gate regression tests and CI on Python 3.10–3.12. |
-
-No paperconan source code is copied into this repository. `scripts/table_integrity_gate.py` is a local preflight wrapper that invokes an installed paperconan CLI or interprets an existing `scan.json`. paperconan remains an external dependency under its own license and release cycle.
+Version `v0.2.2` learned from [zixixr/paperconan](https://github.com/zixixr/paperconan): deterministic numerical signals, explicit parse failures, localized evidence, false-positive profiles, separate review/impact dimensions, and adversarial review. The local wrapper validates compatible `0.8.x` output and reconciles expected files with scanner-reported files and Sheets. No paperconan source code is copied; it remains an external dependency under its own license and release cycle.
 
 ## Repository Contents
 
 - `SKILL.md` - main skill instructions
 - `scripts/preflight_static_scan.py` - static scan for AI residue, placeholders, Markdown/LaTeX remnants, and high-risk submission wording
-- `scripts/reference_audit.py` - DOI/Crossref reference metadata audit
+- `scripts/reference_audit.py` - DOI resolution plus title/first-author/year/journal metadata comparison
 - `scripts/table_integrity_gate.py` - source manifest, paperconan invocation/interpretation, and conservative release-gate outputs
 - `references/checklist.md` - manual pre-submission checklist
 - `references/table_source_data_gate.md` - detailed table/source-data gate, false-positive review, reconciliation, and release criteria
 - `templates/preflight_report.md` - structured preflight report template
 - `examples/example-preflight-report.md` - example submission-QC report
-- `tests/test_table_integrity_gate.py` - synthetic gate regression tests
+- `tests/` - offline regression tests for the static scanner, reference audit, and table gate
 
 ## Download
 
@@ -210,6 +170,15 @@ Recommended inputs:
 
 If only one file is provided, the agent should perform the feasible partial preflight and explicitly list missing inputs.
 
+## Compatibility and Dependencies
+
+- Python `3.10`–`3.12` is tested in CI.
+- The static scanner uses only the Python standard library. `.docx` extraction optionally uses `python-docx>=1.1`; PDF extraction optionally uses `PyMuPDF>=1.24`.
+- The reference audit requires network access to Crossref for live DOI metadata; offline unit tests use fixed synthetic metadata.
+- The table gate supports `paperconan[all]>=0.8,<0.9`. A schema or version mismatch blocks interpretation until compatibility is reviewed.
+
+The repository does not install dependencies automatically. Obtain approval before modifying a shared Python environment.
+
 ## Helper Scripts
 
 Static residue scan:
@@ -227,7 +196,7 @@ python scripts/reference_audit.py path/to/references.bib --out reference_audit.t
 Table and source-data integrity gate:
 
 ```bash
-python -m pip install "paperconan[all]"
+python -m pip install "paperconan[all]>=0.8,<0.9"
 python scripts/table_integrity_gate.py --input-dir path/to/source_data --out preflight/table_gate --profile review
 ```
 
@@ -248,3 +217,7 @@ This is not an AI detector and not a misconduct-adjudication tool. It is a pre-s
 The skill distinguishes verified errors from suspicious items requiring manual confirmation. It should not silently rewrite scientific conclusions, and it should not present hypotheses as validated conclusions.
 
 No skill or scanner can guarantee that published data contain no error. Final clearance means only that no unresolved issue was detected within the explicitly assessed scope after complete parsing, reconciliation, reverse-checking, rescanning, and author sign-off.
+
+## License
+
+This repository is released under the [MIT License](LICENSE).

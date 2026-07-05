@@ -19,10 +19,17 @@ SPEC.loader.exec_module(gate)
 def base_scan() -> dict:
     return {
         "tool": "paperconan",
-        "tool_version": "synthetic-test",
+        "tool_version": "0.8.0",
         "profile": "review",
         "n_files": 2,
         "scan_errors": [],
+        "scan_stats": {
+            "files": [{"file": "a.csv"}, {"file": "b.csv"}],
+            "sheets": [
+                {"file": "a.csv", "sheet": "a"},
+                {"file": "b.csv", "sheet": "b"},
+            ],
+        },
         "relations_blocks": [],
         "cross_sheet_findings": [],
         "digit_distribution": [],
@@ -33,6 +40,33 @@ class TableIntegrityGateTests(unittest.TestCase):
     def test_scan_error_is_blocker(self) -> None:
         scan = base_scan()
         scan["scan_errors"] = [{"file": "legacy.xls", "error": "could not parse"}]
+        self.assertEqual(gate.summarize_scan(scan)["decision"], "BLOCKER")
+
+    def test_unsupported_schema_version_fails_closed(self) -> None:
+        scan = base_scan()
+        scan["tool_version"] = "0.9.0"
+        with self.assertRaises(gate.ScanContractError):
+            gate.summarize_scan(scan)
+
+    def test_missing_schema_key_fails_closed(self) -> None:
+        scan = base_scan()
+        del scan["scan_stats"]
+        with self.assertRaises(gate.ScanContractError):
+            gate.summarize_scan(scan)
+
+    def test_manifest_file_mismatch_is_blocker(self) -> None:
+        summary = gate.summarize_scan(base_scan(), ["a.csv", "missing.xlsx"])
+        self.assertEqual(summary["decision"], "BLOCKER")
+        self.assertEqual(summary["coverage"]["missing_manifest_files"], ["missing.xlsx"])
+
+    def test_sheet_parse_failure_is_blocker(self) -> None:
+        scan = base_scan()
+        scan["scan_stats"]["sheets"][0]["oversized"] = True
+        self.assertEqual(gate.summarize_scan(scan)["decision"], "BLOCKER")
+
+    def test_file_without_parsed_sheets_is_blocker(self) -> None:
+        scan = base_scan()
+        scan["scan_stats"]["files"][0]["n_sheets"] = 0
         self.assertEqual(gate.summarize_scan(scan)["decision"], "BLOCKER")
 
     def test_kept_high_cross_sheet_signal_requires_review(self) -> None:

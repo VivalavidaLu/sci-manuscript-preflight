@@ -10,7 +10,7 @@
 
 ## 它检查什么
 
-- AI 起草残留、prompt、占位符、Markdown/LaTeX 残留
+- AI 起草残留、遗留的 agent 指令、占位符、Markdown/LaTeX 残留
 - 幻觉文献、伪造文献、无法解析文献、DOI/PMID/题名/作者/年份不匹配
 - 过度 claim、未被引用直接支撑的 claim、临床或机制性越界表述
 - 图、表、补充材料、caption、缩写、统计标注和编号一致性
@@ -19,63 +19,23 @@
 - 方法、统计、伦理、数据可用性、报告指南缺口
 - 目标期刊投稿或返修前 readiness
 
-## v0.2.2 新增投稿前检查
-
-- 冻结预期源数据文件，记录相对路径、文件大小和 SHA-256 哈希。
-- 只要存在 `scan_errors`、跳过文件、无法解析的旧版工作簿或缺失的预期 Sheet，就不得判定通过。
-- 将每条数值异常定位到文件、Sheet、行列范围、检测规则、`n` 和示例数值。
-- 检查跨 Sheet/文件重复、恒定差值或比例、精确线性关系、复制后微调、异常小数尾复用、舍入网格，以及适用场景下的 GRIM/GRIMMER 不一致。
-- 保留 `kept`、`demoted`、`hidden` 状态，并核对单位换算、共享对照、公式派生、归一化、固定分母、检测限等良性解释。
-- 将异常信号复核状态与科学影响范围（`CORE`、`SUPPORTING`、`PERIPHERAL`）分开。
-- 独立复算关键统计结果，并对账源数据、Figure、Table、caption、Results 和 Methods。
-- 对尚未解决的高影响发现强制进行一次反向质疑复核。
-- 修正后重新扫描，并要求具名作者完成最终签字确认。
-- 没有发现未解决问题时只使用 `PASS_CANDIDATE`，不作“数据绝对无误”的保证。
-
 ## 设计借鉴
 
-### 图像、源数据和统计完整性框架
+`v0.2.0` 将 [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector) 的图像来源、图像组装、统计一致性和方法矛盾维度，转化为非指控式的作者侧投稿前质量控制。
 
-`v0.2.0` 借鉴了 [wooly99/geng-academic-fraud-detector](https://github.com/wooly99/geng-academic-fraud-detector) 中若干适合转化为投稿前 QC 的检查维度，但全部改写为非指控式、需作者核验的 submission-quality checks：
-
-| 借鉴维度 | 在本 skill 中的转化方式 |
-|---|---|
-| 图片复用 | 转化为疑似重复 figure panel、复用 control、裁剪/翻转/旋转风险、代表图来源缺口检查。 |
-| 数据造假检查 | 转化为源数据和定量结果可追溯性检查：原始值、组别样本量、生物学/技术重复、图表与 source data 是否一致。 |
-| 图片拼接/操纵 | 转化为 Western blot、gel、IF/IHC、显微图、flow cytometry、colony image 的 assembly artifact 风险检查。 |
-| 统计异常 | 转化为统计内部一致性检查：`n`、SD/SEM/CI 标注、p 值、ANOVA/post-hoc 逻辑、检验方法、多重检验校正。 |
-| 产出异常 | 仅作为必要时的背景风险，不作为常规投稿 blocker，也不做作者层面的判断。 |
-| 方法矛盾 | 转化为 Methods-Results-Figure consistency matrix，检查组别、剂量、时间点、样本量、实验方法、归一化和统计检验是否一致。 |
-
-没有借鉴的部分：讽刺性“辣评”风格和学术不端定性语言。本 skill 保持投稿前质控定位，只标记需要作者核验的风险，不指控作者学术不端。
-
-### 表格与源数据完整性放行门
-
-`v0.2.2` 吸收学习了 [zixixr/paperconan](https://github.com/zixixr/paperconan) 的若干成熟设计，包括确定性数值扫描、`signal, not verdict` 边界、解析失败显式化、误报控制、证据定位和对抗式复核。
-
-| 学习维度 | 在本 skill 中的投稿前转化 |
-|---|---|
-| 确定性数值信号 | 在可用时调用真实 paperconan CLI，不根据肉眼观察虚构检测结果。 |
-| 解析覆盖 | 将 `scan_errors`、跳过的预期文件和未解析 Sheet 作为放行阻断项。 |
-| 证据定位 | 记录文件、Sheet、行列范围、规则、`n` 和小型数值样本。 |
-| 误报控制 | 保留 `kept`、`demoted`、`hidden` 状态，并结合原表和 Methods 核验良性解释。 |
-| 异常与影响分离 | 不采用“嫌疑概率”措辞，改用复核状态和独立的科学影响范围。 |
-| 对抗式复核 | 对尚未解决的高影响发现设置独立反向质疑，之后才能投稿放行。 |
-| 回归验证 | 新增合成放行门回归测试，并在 Python 3.10–3.12 上运行 CI。 |
-
-本仓库没有复制 paperconan 的源代码。`scripts/table_integrity_gate.py` 是投稿前质控包装器，用于调用已安装的 paperconan CLI，或解析已有的 `scan.json`。paperconan 仍是遵循其自身许可证和版本周期的外部依赖。
+`v0.2.2` 吸收了 [zixixr/paperconan](https://github.com/zixixr/paperconan) 的确定性数值信号、解析失败显式化、证据定位、误报 profile、复核状态与科学影响分离、对抗式复核等设计。本地包装器仅接受兼容的 `0.8.x` 输出，并对账预期文件与扫描器实际报告的文件和 Sheet。本仓库没有复制 paperconan 源代码；它仍是遵循自身许可证和版本周期的外部依赖。
 
 ## 仓库内容
 
 - `SKILL.md` - skill 主说明
 - `scripts/preflight_static_scan.py` - 静态扫描 AI 残留、占位符、Markdown/LaTeX 残留和高风险投稿措辞
-- `scripts/reference_audit.py` - DOI/Crossref 参考文献元数据核查
+- `scripts/reference_audit.py` - DOI 解析以及标题/首位作者/年份/期刊元数据一致性核查
 - `scripts/table_integrity_gate.py` - 冻结源数据清单、调用/解析 paperconan 并生成保守的放行结果
 - `references/checklist.md` - 人工投稿前检查清单
 - `references/table_source_data_gate.md` - 表格/源数据放行门、误报复核、对账和放行标准
 - `templates/preflight_report.md` - 结构化预检报告模板
 - `examples/example-preflight-report.md` - 投稿前 QC 报告示例
-- `tests/test_table_integrity_gate.py` - 合成放行门回归测试
+- `tests/` - 静态扫描、参考文献核查和表格放行门的离线回归测试
 
 ## 下载
 
@@ -211,6 +171,15 @@ Use the sci-manuscript-preflight skill to check this manuscript folder for AI re
 
 如果你只提供一个文件，agent 应该执行可行的部分预检，并明确列出缺失输入。
 
+## 兼容性与依赖
+
+- CI 覆盖 Python `3.10`–`3.12`。
+- 静态扫描核心仅使用 Python 标准库；提取 `.docx` 可选用 `python-docx>=1.1`，提取 PDF 可选用 `PyMuPDF>=1.24`。
+- 参考文献实时核查需要访问 Crossref；离线测试使用固定的合成元数据。
+- 表格放行门支持 `paperconan[all]>=0.8,<0.9`。schema 或版本不兼容时必须阻断，直到重新验证兼容性。
+
+仓库不会自动安装依赖。修改共享 Python 环境前应先取得同意。
+
 ## 直接运行辅助脚本
 
 静态残留扫描：
@@ -228,7 +197,7 @@ python scripts/reference_audit.py path/to/references.bib --out reference_audit.t
 表格与源数据完整性放行门：
 
 ```bash
-python -m pip install "paperconan[all]"
+python -m pip install "paperconan[all]>=0.8,<0.9"
 python scripts/table_integrity_gate.py --input-dir path/to/source_data --out preflight/table_gate --profile review
 ```
 
@@ -249,3 +218,7 @@ python scripts/table_integrity_gate.py --scan-json path/to/scan.json --out prefl
 这个 skill 会区分“已验证错误”和“需要人工确认的可疑项”。它不应静默改写科学结论，也不应把假设当成已验证结论。
 
 任何 skill 或扫描器都不能保证发表数据绝对不存在错误。只有在解析覆盖完整、跨材料对账、反向质疑、修正后复扫和作者签字均完成后，才能表述为“在已评估范围内未发现尚未解决的问题”。
+
+## 许可证
+
+本仓库采用 [MIT License](LICENSE)。

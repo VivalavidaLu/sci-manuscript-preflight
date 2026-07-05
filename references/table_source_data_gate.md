@@ -48,7 +48,7 @@ Any parse failure blocks final clearance until the file is successfully assessed
 When available, run the external [paperconan](https://github.com/zixixr/paperconan) CLI rather than inferring patterns by visual inspection:
 
 ```bash
-python -m pip install "paperconan[all]"
+python -m pip install "paperconan[all]>=0.8,<0.9"
 python scripts/table_integrity_gate.py --input-dir path/to/source_data --out preflight/table_gate --profile review
 ```
 
@@ -58,7 +58,9 @@ If paperconan is already run:
 python scripts/table_integrity_gate.py --scan-json path/to/scan.json --out preflight/table_gate
 ```
 
-Do not install packages into a shared or production environment without user approval. If the deterministic scanner is unavailable, mark this gate `NOT ASSESSED`; do not fabricate findings or claim a pass.
+The wrapper accepts the documented paperconan `0.8.x` schema, validates required fields, and reconciles the frozen manifest with scanner-reported files and Sheets. A version/schema mismatch or incomplete reconciliation is a blocker.
+
+Do not install packages into a shared or production environment without user approval. If the deterministic scanner is unavailable, mark this gate `NOT_ASSESSED`; do not fabricate findings or claim a pass.
 
 Review at least these signal classes:
 

@@ -32,6 +32,114 @@ OUTPUT_FIELDS = (
     "columns", "rule", "n", "evidence_sample", "likely_benign",
     "false_positive_context", "prefilter_reason",
 )
+SUPPORTED_PAPERCONAN_MAJOR_MINOR = {(0, 8)}
+REQUIRED_SCAN_KEYS = {
+    "tool", "tool_version", "n_files", "scan_errors", "scan_stats",
+    "relations_blocks", "cross_sheet_findings", "digit_distribution",
+}
+
+
+class ScanContractError(ValueError):
+    """Raised when scan.json cannot safely be interpreted by this wrapper."""
+
+
+def _version_tuple(value: Any) -> tuple[int, int, int]:
+    parts = str(value).split(".")
+    if len(parts) < 2 or not all(part.isdigit() for part in parts[:2]):
+        raise ScanContractError(f"Invalid paperconan tool_version: {value!r}")
+    numeric = [int(part) if part.isdigit() else 0 for part in parts[:3]]
+    return tuple((numeric + [0, 0, 0])[:3])
+
+
+def validate_scan_schema(scan: dict[str, Any]) -> None:
+    missing = sorted(REQUIRED_SCAN_KEYS - scan.keys())
+    if missing:
+        raise ScanContractError(
+            "Incompatible paperconan scan schema; missing: " + ", ".join(missing)
+        )
+    if scan["tool"] != "paperconan":
+        raise ScanContractError(f"Unexpected scan tool: {scan['tool']!r}")
+    version = _version_tuple(scan["tool_version"])
+    if version[:2] not in SUPPORTED_PAPERCONAN_MAJOR_MINOR:
+        raise ScanContractError(
+            f"Unsupported paperconan version {scan['tool_version']!r}; "
+            "this wrapper supports 0.8.x. Revalidate the schema before upgrading."
+        )
+    if not isinstance(scan["n_files"], int) or scan["n_files"] < 0:
+        raise ScanContractError("n_files must be a non-negative integer")
+    for key in ("scan_errors", "relations_blocks", "cross_sheet_findings", "digit_distribution"):
+        if not isinstance(scan[key], list):
+            raise ScanContractError(f"{key} must be a list")
+    stats = scan["scan_stats"]
+    if not isinstance(stats, dict):
+        raise ScanContractError("scan_stats must be an object")
+    for key in ("files", "sheets"):
+        if not isinstance(stats.get(key), list):
+            raise ScanContractError(f"scan_stats.{key} must be a list")
+
+
+def _entry_path(entry: Any) -> str:
+    if isinstance(entry, str):
+        return entry
+    if isinstance(entry, dict):
+        for key in ("path", "file", "name"):
+            if entry.get(key):
+                return str(entry[key])
+    return ""
+
+
+def _path_key(value: str) -> str:
+    return value.replace("\\", "/").strip("./").casefold()
+
+
+def _paths_match(expected: str, observed: str) -> bool:
+    left, right = _path_key(expected), _path_key(observed)
+    return left == right or right.endswith("/" + left) or left.endswith("/" + right)
+
+
+def reconcile_coverage(
+    scan: dict[str, Any], expected_files: Iterable[str] | None = None
+) -> dict[str, Any]:
+    stats = scan["scan_stats"]
+    observed = [_entry_path(entry) for entry in stats["files"]]
+    observed = [item for item in observed if item]
+    expected = list(expected_files or [])
+    missing = [item for item in expected if not any(_paths_match(item, seen) for seen in observed)]
+    unexpected = [item for item in observed if expected and not any(
+        _paths_match(wanted, item) for wanted in expected
+    )]
+    file_errors = [
+        entry for entry in stats["files"]
+        if isinstance(entry, dict) and (
+            entry.get("error") or entry.get("oversized") or entry.get("n_sheets") == 0
+        )
+    ]
+    sheet_errors = []
+    for entry in stats["sheets"]:
+        if not isinstance(entry, dict):
+            continue
+        status = str(entry.get("status", "")).casefold()
+        if (
+            entry.get("error")
+            or entry.get("oversized")
+            or status in {"error", "failed", "skipped", "unparsed"}
+        ):
+            sheet_errors.append(entry)
+    count_mismatch = scan["n_files"] != len(observed)
+    complete = bool(observed) and bool(stats["sheets"]) and not (
+        missing or unexpected or file_errors or sheet_errors or count_mismatch
+    )
+    return {
+        "manifest_files": expected,
+        "scanner_files": observed,
+        "scanner_sheet_count": len(stats["sheets"]),
+        "missing_manifest_files": missing,
+        "unexpected_scanner_files": unexpected,
+        "file_errors": file_errors,
+        "sheet_errors": sheet_errors,
+        "n_files_count_mismatch": count_mismatch,
+        "complete": complete,
+    }
 
 
 def sha256_file(path: Path) -> str:
@@ -143,19 +251,23 @@ def iter_findings(scan: dict[str, Any]) -> Iterable[dict[str, Any]]:
         yield normalize_finding(normalized, common)
 
 
-def summarize_scan(scan: dict[str, Any]) -> dict[str, Any]:
+def summarize_scan(
+    scan: dict[str, Any], expected_files: Iterable[str] | None = None
+) -> dict[str, Any]:
+    validate_scan_schema(scan)
     findings = list(iter_findings(scan))
     scan_errors = scan.get("scan_errors") or []
     n_files = int(scan.get("n_files") or 0)
+    coverage = reconcile_coverage(scan, expected_files)
     kept_review = [
         finding for finding in findings
         if finding["profile_action"] == "kept"
         and finding["severity"] in {"high", "medium"}
     ]
 
-    if scan_errors or n_files == 0:
+    if scan_errors or n_files == 0 or not coverage["complete"]:
         decision = "BLOCKER"
-        reason = "One or more expected source-data files were not successfully assessed."
+        reason = "The source-data scan is incomplete or its file/Sheet coverage cannot be reconciled."
     elif kept_review:
         decision = "REVIEW_REQUIRED"
         reason = "Kept high/medium signals require original-table and context review."
@@ -176,6 +288,7 @@ def summarize_scan(scan: dict[str, Any]) -> dict[str, Any]:
         "input_dir": scan.get("input_dir", ""),
         "n_files": n_files,
         "scan_errors": scan_errors,
+        "coverage": coverage,
         "finding_count": len(findings),
         "severity_counts": dict(Counter(item["severity"] for item in findings)),
         "profile_action_counts": dict(Counter(item["profile_action"] for item in findings)),
@@ -200,6 +313,7 @@ def write_gate_report(summary: dict[str, Any], path: Path) -> None:
         f"- Files assessed: {summary['n_files']}",
         f"- Findings: {summary['finding_count']}",
         f"- Scan errors: {len(summary['scan_errors'])}",
+        f"- Coverage reconciled: {summary['coverage']['complete']}",
         "",
         "> Numerical anomaly scanning is a signal layer, not proof of correctness or misconduct.",
         "> `PASS_CANDIDATE` never equals final submission clearance.",
@@ -211,6 +325,24 @@ def write_gate_report(summary: dict[str, Any], path: Path) -> None:
             lines.append(
                 f"- `{error.get('file', 'unknown')}`: {error.get('error', 'unknown error')}"
             )
+        lines.append("")
+    coverage = summary["coverage"]
+    if not coverage["complete"]:
+        lines.extend(["## Coverage reconciliation", ""])
+        for item in coverage["missing_manifest_files"]:
+            lines.append(f"- Missing from scanner output: `{item}`")
+        for item in coverage["unexpected_scanner_files"]:
+            lines.append(f"- Not present in frozen manifest: `{item}`")
+        for item in coverage["file_errors"]:
+            lines.append(f"- File not fully assessed: `{_compact(item)}`")
+        for item in coverage["sheet_errors"]:
+            lines.append(f"- Sheet not fully assessed: `{_compact(item)}`")
+        if coverage["n_files_count_mismatch"]:
+            lines.append("- `n_files` does not equal the scanner file inventory length.")
+        if not coverage["scanner_files"]:
+            lines.append("- Scanner did not report a file inventory.")
+        if coverage["scanner_sheet_count"] == 0:
+            lines.append("- Scanner did not report any parsed Sheet/table.")
         lines.append("")
     lines.extend(["## Required completion steps", ""])
     lines.extend(f"- [ ] {item}" for item in summary["final_pass_requires"])
@@ -226,7 +358,8 @@ def run_paperconan(input_dir: Path, scanner_out: Path, profile: str) -> Path:
     if executable is None:
         raise RuntimeError(
             'paperconan is not installed. Install it in an isolated environment with '
-            '`python -m pip install "paperconan[all]"`, then rerun. Do not mark the gate as passed.'
+            '`python -m pip install "paperconan[all]>=0.8,<0.9"`, then rerun. '
+            'Do not mark the gate as passed.'
         )
     scanner_out.mkdir(parents=True, exist_ok=True)
     command = [executable, str(input_dir), "--out", str(scanner_out), "--profile", profile]
@@ -273,7 +406,8 @@ def main() -> int:
             scan_json = args.scan_json
 
         scan = json.loads(scan_json.read_text(encoding="utf-8"))
-        summary = summarize_scan(scan)
+        expected_files = [row["path"] for row in manifest] if args.input_dir else None
+        summary = summarize_scan(scan, expected_files)
         (args.out / "gate.json").write_text(
             json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
